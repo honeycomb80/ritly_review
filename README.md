@@ -4,11 +4,12 @@ This readme will cover the setup and coding of the Ritly app as if I were starti
 
 ## Objetives
 * Deeper understanding of routes
-* Depper understanding of models and migrations
+* Deeper understanding of models and migrations
 * Observing best practices for creating an application:
 	* Commit frequently
 	* Test the changes you make before you commit
 	* Do not commit files that you don't need
+	* Research the methods you call to fully understand what you're doing
 	* Setup sublime to use the proper spacing
 	
 ## Sublime Setup
