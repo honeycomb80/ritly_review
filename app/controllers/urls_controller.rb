@@ -15,6 +15,16 @@ class UrlsController < ApplicationController
     @url = Url.find(params[:id])
   end
 
+  def go
+    url = Url.find_by(random_string: params[:random_string])
+    if url
+      redirect_to url.link
+    else
+      flash[:error] = "Sorry, ritly doesn't know that link"
+      redirect_to root_path
+    end
+  end
+
   private
     def url_params
       params.require(:url).permit(:link)

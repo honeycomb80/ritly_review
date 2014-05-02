@@ -1,1 +1,1 @@
-<%= @url.random_string %> => <%= @url.link %>
+<%= link_to go_path(@url.random_string), go_path(@url.random_string) %> => <%= link_to @url.link, @url.link %>
