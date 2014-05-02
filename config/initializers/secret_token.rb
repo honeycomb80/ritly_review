@@ -9,4 +9,4 @@
 
 # Make sure your secret_key_base is kept private
 # if you're sharing your code publicly.
-Ritly::Application.config.secret_key_base = '20cb6fac63cb24544afd39463fdcebd70754acdaaff8e5368d13c673483b4a78be1b05d7ceaea28e83f78f73dea6fa498a4168bc87d4d568a419e0035ec8800a'
+Ritly::Application.config.secret_key_base = ENV['SECRET_KEY_BASE']
