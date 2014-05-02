@@ -529,15 +529,119 @@ git push origin master
 
 #### Questions
 * What is the difference between the active record `create` and `new` methods
-* What does the active record `save` function return
+* What does the active record `save` function return?
+* What is the difference between `save` and `save!`?
 * How do you look at the rails logs?
-* How can you tell when something got saved to the database using the logs
+* How can you tell when something got saved to the database using the logs?
 * Where did the url_path method come from?
 * Why was it called url_path?
 * What does `params.require` do?
 * What does `permit` do?
 
 
-## Adding a show page
+## Adding a Show Page
+
+Now that we know data is being saved to the database, we can implement a page for showing.  Add the code to the controller to get the url instance from active record that was passed in as a parameter:
+
+```
+def show
+  @url = Url.find(params[:id])
+end
+```
+Now in the show view, in `app/views/urls/show.html.erb`, display the data from the database:
+
+```
+<%= @url.random_string %> => <%= @url.link %>
+```
+
+
+#### Test and Commit
+
+Run the rails server and verify that the show page works.
+
+Now as usual, run rspec, commit and push
+
+```
+rspec
+````
+Everything looks ok, now commit:
+
+```
+git add app/controllers/urls_controller.rb 
+git add app/views/urls/show.html.erb 
+git commit -m "Implemented url show page"
+git push origin master
+```
+
+#### Questions
+* Where did the :id come from?  Why is the name :id?
+* Why don't we have to say `render :show` in the show action?
+* Where did @url come from in the view?
+* Does the variable in the show method have to be called @url? Could it be @taco?
+
+## Adding Go
+
+Now we want our show page to actually show a link that the user can click on to follow the redirect.  In order to get this working we need a new route.  According to the lab, the route should be mydomain.com/go/Random_String.  Let's add that route to the `config/routes.rb` file:
+
+```
+Ritly::Application.routes.draw do
+.
+.
+  get '/go/:random_string', to: 'urls#go', as: 'go'
+  
+end
+  
+```
+
+Do a `rake routes` and see what you have.  Next, we need to add an action in the controller for go.  The go method takes a parameter from the url, which is the random string.  The go action must find the random string in the db then redirect to the redirect url.
+
+```
+def go
+  url = Url.find_by(random_string: params[:random_string])
+  if url
+  	redirect_to url.link
+  else
+    flash[:error] = "Sorry, ritly doesn't know that link"
+    redirect_to root_path
+  end
+end
+```
+
+Let's also update the show page so that everything is a link:
+
+```
+<%= link_to go_path(@url.random_string), go_path(@url.random_string) %> =>
+<%= link_to @url.link, @url.link %>
+```
+
+
+
+
+#### Test & Commit
+Verify that the show page works and commit your changes:
+
+```
+rspec
+```
+Everyting is fine
+
+```
+git status
+git add app/.
+git add config/.
+git commit "Adding go route and action.  Updating the show page to display the go link"
+git push origin master
+```
+
+#### Questions
+* Where did `go_path` come from?
+* What does link_to do?
+* What does the flash hash do?
+* What else needs to be done to use the flash hash?
+* What does find_by return if nothing is found?
+* What `redirect_to root_path` do?
+
+
+
 
 
