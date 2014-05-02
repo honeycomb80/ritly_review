@@ -1,1 +1,7 @@
 <%= link_to go_path(@url.random_string), go_path(@url.random_string) %> => <%= link_to @url.link, @url.link %>
+<br>
+<ul>
+<% @visits.each do |visit| %>
+  <li><%= visit.created_at %></li>
+<% end %>
+</ul>

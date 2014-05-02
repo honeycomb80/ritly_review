@@ -17,11 +17,13 @@ class UrlsController < ApplicationController
 
   def show
     @url = Url.find(params[:id])
+    @visits = @url.visits
   end
 
   def go
     url = Url.find_by(random_string: params[:random_string])
     if url
+      url.visits.create
       redirect_to url.link
     else
       flash[:error] = "Sorry, ritly doesn't know that link"
