@@ -427,3 +427,116 @@ git push origin master
 * In the routes file, what is the as parameter doing?
 * If you run rake routes, what is the prefix?
 * Why does form_for need an instance of the `Url` class?
+
+## Saving And Showing
+
+Now we have a working new page that sends a POST to '/urls'.  We have a route that routes that request to the `urls#create` action, but the aciton doesn't have any code yet.
+
+In `app/controllers/urls_controller.rb` Add the code to create a new url and an empty show method:
+
+```
+def create
+  url = Url.create(link: params[:url][:link])
+  url.random_string = SecureRandom.urlsafe_base64(6)
+  url.save
+  redirect_to "/urls/#{url.id}"
+end
+
+def show
+end
+```
+
+Now we can add the show erb file at `app/views/urls/show.html.erb`:
+
+```
+Hello world!
+```
+
+Now run your rails server and create a url.  Verify that the route to the show page works and you see hello world.  You can also open up rails console and see that the url that you created has been added to the database by doing `Url.all`.
+
+Next, we can simplify the logic in create.  Instead of writing out the exact param we want every time, we can use require and permit to get a hash of the values we are expecting.  Make the following changes to `app/controllers/urls_controller.rb`:
+
+```
+def create
+  url = Url.create url_params
+  url.random_string = SecureRandom.urlsafe_base64(6)
+  url.save
+  redirect_to "/urls/#{url.id}"
+end
+
+.
+.
+.
+
+private
+  def url_params
+    params.require(:url).permit(:link)
+  end
+```
+
+We can also clean up the logic for saving to the database.  the `Url.create` method sends an insert statement to postgres, then the `url.save` sends another sql statement to postgres.  Instead of using create, we can use `Url.new` which creates a new instance of the Url object but does not insert the data into the database:
+
+ ```
+def create
+  url = Url.new url_params
+  url.random_string = SecureRandom.urlsafe_base64(6)
+  url.save
+  redirect_to "/urls/#{url.id}"
+end
+```
+
+Finally, we are string interpolating the route we want to go to.  Instead of typing out the route directly, we can use the path that we created in the controller:
+
+```
+def create
+  url = Url.new url_params
+  url.random_string = SecureRandom.urlsafe_base64(6)
+  url.save
+  redirect_to url_path(url)
+end
+```
+
+Since the path we created follows the rails convention, we don't even need to call the url_path method.  Instead, we can just call redirect_to and give it the url object.
+
+```
+def create
+  url = Url.new url_params
+  url.random_string = SecureRandom.urlsafe_base64(6)
+  url.save
+  redirect_to url
+end
+```
+
+#### Test & Commit
+
+Test out that the change is working.  Run your rails server, test it out and verify that your changes are actually stored in the database.
+
+Now, run your rspec tests to make sure there are no regressions:
+
+```
+rspec
+```
+
+And finally commit the changes:
+
+```
+git add app/controllers/urls_controller.rb 
+git add app/views/urls/show.html.erb
+git commit -m "Implementing create method for urls and an empty show page"
+git push origin master
+```
+
+#### Questions
+* What is the difference between the active record `create` and `new` methods
+* What does the active record `save` function return
+* How do you look at the rails logs?
+* How can you tell when something got saved to the database using the logs
+* Where did the url_path method come from?
+* Why was it called url_path?
+* What does `params.require` do?
+* What does `permit` do?
+
+
+## Adding a show page
+
+
