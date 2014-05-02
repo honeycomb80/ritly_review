@@ -7,8 +7,12 @@ class UrlsController < ApplicationController
   def create
     url = Url.new url_params
     url.random_string = SecureRandom.urlsafe_base64(6)
-    url.save
-    redirect_to url
+    if url.save
+      redirect_to url
+    else
+      flash[:error] = "The url could not be saved.  Try again"
+      redirect_to root_path
+    end
   end
 
   def show
