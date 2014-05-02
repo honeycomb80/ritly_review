@@ -579,6 +579,56 @@ git push origin master
 * Where did @url come from in the view?
 * Does the variable in the show method have to be called @url? Could it be @taco?
 
+## Validation
+
+Now let's add a validation to the model to protect against bad data.  In the model file we want to validate that the link is present and that the random_string is present.  We can also validate that the random_string is unique (even though this doesn't really ensure uniqueness, it is close enough for us).  In `app/models/url.rb` add the following validations:
+
+```
+class Url < ActiveRecord::Base
+  validates :link, presence: true
+  validates :random_string, presence: true, uniqueness: true
+end
+```
+
+Now when create is call, we have to handle the error case as well.  Change create to look like the following:
+
+```
+  def create
+    url = Url.new url_params
+    url.random_string = SecureRandom.urlsafe_base64(6)
+    if url.save
+      redirect_to url
+    else
+      flash[:error] = "The url could not be saved.  Try again"
+      redirect_to root_path
+    end
+  end
+```
+
+## Test & Commit
+
+Now run rails and make sure that an empty link does not get commited to the database.  Verify by checking all the records in the database or checking the rails logs.  Right now some user feedback is missing.  We will add that soon.
+
+Now run rspec
+
+```
+rspec
+```
+Then add the changes and commit:
+
+```
+git add app/.
+git commit -m "Adding presence and uniqueness validations to the url model"
+git push origin master
+```
+
+#### Questions
+* What does `url.save` return?
+* Where does the root_path method come from?
+* What does validates presence do?  
+* What other validations can you do?
+* Where would you go to find out more about validations?
+
 ## Adding Go
 
 Now we want our show page to actually show a link that the user can click on to follow the redirect.  In order to get this working we need a new route.  According to the lab, the route should be mydomain.com/go/Random_String.  Let's add that route to the `config/routes.rb` file:
@@ -614,16 +664,13 @@ Let's also update the show page so that everything is a link:
 <%= link_to @url.link, @url.link %>
 ```
 
-
-
-
 #### Test & Commit
 Verify that the show page works and commit your changes:
 
 ```
 rspec
 ```
-Everyting is fine
+If everyting looks fine, we can commit.
 
 ```
 git status
@@ -641,7 +688,185 @@ git push origin master
 * What does find_by return if nothing is found?
 * What `redirect_to root_path` do?
 
+## Using a Partial And Flash
+
+Now that we have go working, we want to tell the user if they have gone to a bad link.  We already have the code in `urls#go` and `urls#create` that does some input validation.  Now we can display that error message on any page that we redirect to.  All we need is read the flash hash and print any values that the hash may have. In `app/view/layout/application.html.erb`, add a loop that loops over keys and values and prints out all the strings that are present.  The code should be added just above yield:
+
+```
+.
+.
+.
+<% flash.each do|key,value| %>
+   <div> <%=value%> </div>
+<% end %>
+.
+.
+.
+<%= yield %>
+```
+
+If you like, you could display a differntly styled div depending on the severity of the flash message, e.g., error vs warn.  Now whenever there is an error, the error message will be displayed on which page you redirect the user to.
+
+#### Test & Commit
+
+Test this out by trying to submit an empty link and seeing if an error message pops up.
+
+If everything looks good, run the specs:
+
+```
+rspec
+```
+Then commit:
+
+```
+git add app/views/layouts/application.html.erb
+git commit -m "Adding a display for the flash hash in application.html.erb"
+git push origin master
+```
+
+## Questions
+* Why did we add the flash display to application.html.erb
+* What does the yield method do in the file?
+* What is each key in the flash hash?
+
+## Adding a Relation
+
+Let's make this assignment a little more complicated.  Assume that instead of keeping track of the number of times a link is visited, we actually want to keep track of every time the link was visited and what time the visit occured.  In this case, there is a one to many relationship between data in the urls table and another table we will need to create called visits.
+
+To model a one to many relationship, a foreign key will need to be added to the many side of the relationship.  In this example the visits table needs a foreign key that references the urls table.  That way, we can write a sql query to get all of the visits for one link by saying something like the following:
+
+```
+SELECT *
+FROM visits
+WHERE url_id=5
+```
+This query assumes that we already know the id of the url, which is 5.  This will most likely be the case if you need to find all the visits for 1 url.
+
+Let's create a model for visits:
+
+```
+rails g model visit --no-test-framework
+```
+
+__Oh no!__ We forgot to add the table that we are referencing.  That is ok, we can add another migration to do the reference.
+
+```
+rails g migration AddUrlIdToVisits url_id:integer
+```
+
+The above command will create a column for the foreign key of the urls table.  There is actually a easy way to generate that same column.  You could use references instead.  First, remove the migration that was just generated, then run:
+
+```
+rails g migration AddUrlIdToVisits url:references 
+```
+
+Now check out the migration that was generated and the changes that happen to the database after doing a `rake db:migrate`.  Notice that the changes were pretty much identical to the first migration.
+
+Now we need to tell active record that this relationship exists in the database.  __IMPORTANT: The only reason the relationship is working is because of how you set up the tables in the database.  Active record does not create the association__.
+
+Let's tell active record what's going on.  In the `app/models/url.rb` class, add:
+
+```
+has_many :visits
+```
+Now in `app/models/visit.rb` add:
+
+```
+belongs_to :url
+```
+
+#### Test & Commit
+
+Now we can create a visit in `rails console` and see that it is working:
+
+```
+Url.first.visits.create
+```
+Next, ask for all the visits associated to that url
+
+```
+Url.first.visits
+```
+You should see the visit that was just created.
+
+If everything looks good, run rspec
+
+```
+rspec
+```
+Then commit and push your code
+
+```
+git add app/. db/.
+git commit -m "Adding a visits model and setting up the 1 to many association with url"
+git push origin master
+```
+
+#### Questions
+* What sets up the association between the urls table and the visits table?
+* What does references do?
+* What does the has_many or belongs to methods do to a model? What methods do they add?
+
+## Saving and Displaying the Visits
+
+Let's add code to save and display the visits.  In `app/contollers/urls_controller.rb` modify the `go` action to create a visit any time a url is accessed:
+
+```
+def go
+  url = Url.find_by(random_string: params[:random_string])
+  if url
+    # Add the visits code below
+    url.visits.create
+    redirect_to url.link
+  else 
+    flash[:error] = "Sorry, ritly doesn't know that link"
+    redirect_to root_path
+  end
+end
+```
+
+Now in the show page, we can also list all visits. First add the data in the controller:
+
+```
+def show
+  @url = Url.find(params[:id])
+  @visits = @url.visits
+end
+```
+
+Next, display the data in the show view:
 
 
+	<%= link_to go_path(@url.random_string), go_path(@url.random_string) %> =>
+	<%= link_to @url.link, @url.link %>
+	<br>
+	<ul>
+	<% @visits.each do |visit| %>
+  	  <li><%= visit.created_at %></li>
+	<% end %>
+	</ul>
+
+
+#### Test & Commit
+
+Now visit a redirect a few times and then refresh your show page.  Check out all the visits.
+
+If everything looks good, run rspec
+
+```
+rspec
+```
+
+Then commit
+
+```
+git add app/.
+git commit -m "Showing the number of visits on the show page"
+git push origin master
+```
+
+#### Questions
+* Where did the visits method come from?
+* What is the query it will execute on the database?
 
 
